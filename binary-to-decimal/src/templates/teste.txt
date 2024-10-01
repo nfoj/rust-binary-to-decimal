@@ -1,0 +1,98 @@
+Rust
+
+
+#[macro_use]
+extern crate rocket;
+
+use std::str::FromStr;
+
+#[get("/")]
+fn index() -> &'static str {
+    include_str!("templates/index.html")
+}
+
+#[post("/convert")]
+fn convert(binary: String) -> String {
+    // Função para converter binário para decimal sem usar arrays
+    fn binary_to_decimal(binary: &str) -> Result<i32, String> {
+        let mut decimal = 0;
+        let mut power = 0;
+
+        for c in binary.chars().rev() {
+            if c != '0' && c != '1' {
+                return Err("Entrada inválida. Somente 0s e 1s são permitidos.".to_string());
+            }
+            decimal += (c as u8 - b'0') as i32 * 2i32.pow(power);
+            power += 1;
+        }
+
+        Ok(decimal)
+    }
+
+    match binary_to_decimal(&binary) {
+        Ok(result) => result.to_string(),
+        Err(error) => error,
+    }
+}
+
+#[launch]
+fn rocket() -> rocket::Rocket {
+    rocket::build()
+        .mount("/", routes![index, convert])
+        .mount("/static", FileServer::from("static"))
+}
+
+
+
+
+
+Html 
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Conversor Binário para Decimal</title>
+</head>
+<body>
+    <form action="/convert" method="post">
+        <label for="binary">Número Binário:</label>
+        <input type="text" id="binary" name="binary">
+        <button type="submit">Converter</button>
+    </form>
+    <p id="result"></p>
+
+    <script>
+        const resultElement = document.getElementById('result');
+
+        fetch('/convert')
+            .then(response => response.text())
+            .then(data => {
+                resultElement.textContent = data;
+            });
+    </script>
+</body>
+</html>
+
+
+
+
+Att
+
+
+const form = document.querySelector('form');
+form.addEventListener('submit', function(event) {
+    event.preventDefault(); // Previne o recarregamento da página
+    const binaryInput = document.getElementById('binary').value;
+
+    fetch('/convert', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ binary: binaryInput })
+    })
+    .then(response => response.text())
+    .then(data => {
+        resultElement.textContent = data;
+    });
+});
